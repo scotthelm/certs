@@ -29,7 +29,7 @@ func main() {
 }
 
 func flags() *string {
-	d := flag.String("-d", "./ssl_certs/", "cert directory to find *.crt")
+	d := flag.String("d", "./ssl_certs/", "cert directory to find *.crt")
 	flag.Parse()
 	return d
 }
