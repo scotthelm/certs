@@ -40,7 +40,7 @@ func doDirectory(directory string) {
 	}
 }
 func flags() *string {
-	d := flag.String("d", "", "cert directory to find *.crt")
+	d := flag.String("d", "", "cert directory to find *.crt. If no directory is provided, standard in is used.")
 	flag.Parse()
 	return d
 }
