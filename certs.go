@@ -7,6 +7,7 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
+	"os"
 	"path/filepath"
 	"time"
 )
@@ -14,39 +15,53 @@ import (
 func main() {
 	// get a directory from a command line argument
 	directory := flags()
-	// get a range of files from the directory
-	file_list, _ := files(*directory)
-	for _, f := range file_list {
-		// get the certs and create the output struct
-		cert, err := certificate(f)
-		if err != nil {
-			fmt.Println(err)
-		} else {
-			o := output(cert)
-			fmt.Printf("%s\t'%s'\t%d\n", o.DNSNames, o.Issuer, o.DaysTilExpiration)
-		}
+	if *directory == "" {
+		doStdIn(ioutil.ReadAll(os.Stdin))
+	} else {
+		// get a range of files from the directory
+		doDirectory(*directory)
 	}
 }
 
+func doStdIn(file_bytes []byte, err error) {
+	if err == nil {
+		showOutput(file_bytes)
+	}
+}
+
+func doDirectory(directory string) {
+	if directory != "" {
+		file_list, _ := files(directory)
+		for _, f := range file_list {
+			// get the certs and create the output struct
+			bytes, _ := ioutil.ReadFile(f)
+			showOutput(bytes)
+		}
+	}
+}
 func flags() *string {
-	d := flag.String("d", "./ssl_certs/", "cert directory to find *.crt")
+	d := flag.String("d", "", "cert directory to find *.crt")
 	flag.Parse()
 	return d
+}
+
+func showOutput(bytes []byte) {
+	cert, err := certificate(bytes)
+	if err != nil {
+		fmt.Println(err)
+	} else {
+		o := output(cert)
+		fmt.Printf("%s\t'%s'\t%d\n", o.DNSNames, o.Issuer, o.DaysTilExpiration)
+	}
 }
 
 func files(directory string) ([]string, error) {
 	return filepath.Glob(filepath.Join(directory, "*.crt"))
 }
 
-func certificate(filepath string) (*x509.Certificate, error) {
-	file_bytes, file_err := ioutil.ReadFile(filepath)
+func certificate(file_bytes []byte) (*x509.Certificate, error) {
 	pemBlock, _ := pem.Decode(file_bytes)
-	var cert *x509.Certificate
-	var err error
-	if file_err == nil {
-		cert, err = x509.ParseCertificate(pemBlock.Bytes)
-	}
-	return cert, err
+	return x509.ParseCertificate(pemBlock.Bytes)
 }
 
 func output(cert *x509.Certificate) Output {
